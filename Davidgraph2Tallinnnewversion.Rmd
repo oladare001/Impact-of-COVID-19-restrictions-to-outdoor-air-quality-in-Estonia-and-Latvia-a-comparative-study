@@ -1,0 +1,156 @@
+---
+title: "DavidSon"
+author: "Stephenson"
+date: "2024-07-28"
+output: html_document
+---
+
+```{r plot_code, echo=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(readr)
+library(openxlsx)
+library(ggplot2)
+library(rmarkdown)
+library(rlang)
+library(patchwork)
+```
+
+
+#Import data
+
+```{r}
+df_long<- read_xlsx("AverageweeklyResidualsource.xlsx", sheet = "Narva")
+
+```
+
+
+
+```{r}
+# Fit multiple linear regression model
+model <- lm(NoxAverage ~ Temperature + Windspeed + TemperatureGradient, data = df_long)
+
+
+```
+
+
+```{r}
+# Calculate residuals 
+df_long$residual <- residuals(model)
+
+# Create a new data frame with necessary columns including residuals
+residuals_df <- df_long[, c("Week", "Year", "Temperature", "Windspeed","TemperatureGradient", "residual")]
+
+
+# Create the residual plot
+GraphA <- ggplot(residuals_df, aes(x = Week, xend = Week, y = 0, yend = residual, color = factor(Year))) +
+  geom_segment(alpha = 0.5, size = 0.5) +
+  labs(x = "Weeks", y = "Residuals", color = "Years") +
+  facet_wrap(~ 'WeeklyAverage_Trendlines of Residual for Tartu Meteorological Variables (2019_2021)', scales = "free_y") +
+  geom_point()  # Add geom_point if needed
+
+# Display the plot
+print(GraphA)
+
+```
+
+
+
+```{r}
+# Calculate residuals 
+df_long$residual <- residuals(model)
+
+# Create a new data frame with necessary columns including residuals
+residuals_df2 <- df_long[, c("Week", "Year", "Temperature", "Windspeed","TemperatureGradient", "residual")]
+
+# Create the residual plot
+GraphA1 <- ggplot(residuals_df2, aes(x = Week, y = residual, color = factor(Year))) +
+  geom_point(alpha = 0.5, size = 2) +  # Change to geom_point for scatter dots
+  geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 0.7) + # Add horizontal line at y = 0
+  labs(x = "Weeks", y = "Residuals", color = "Years") +
+  facet_wrap(~ 'WeeklyAverage_Trendlines of Residual for Tartu Meteorological Variables (2018_2021)', scales = "free_y")
+
+# Display the plot
+print(GraphA1)
+
+```
+
+
+
+```{r}
+# Export the graph in PDF format
+#ggsave("Tartu1.pdf", GraphA, width = 8, height = 6)
+
+#ggsave("Tartu2.pdf", GraphA1, width = 8, height = 6)
+```
+
+
+```{r}
+library(writexl)
+# Export the data frame to an Excel file
+#write_xlsx(residuals_df2, "residual.xlsx")
+```
+#Standard Deviation and Filtering part
+
+
+
+#lockdownperiod
+```{r}
+# Filter the data for  certain Weeks for the years 2020 and 2021, and Week 12 for 2021
+filtered_df <- residuals_df %>%
+  #filter(((Week == 19 & Year ==2020)|Week == 12 |Week == 13 | Week == 14| Week==15 | Week==16| Week==17| Week==18) & (Year == 2020 | Year == 2021 | Year == 2019))
+  filter((Week == 12 |Week == 13 | Week == 14| Week==15 | Week==16| Week==17| Week==18) & (Year == 2020 | Year == 2021 | Year == 2019))
+
+```
+
+
+```{r}
+# Calculate mean and standard deviation for the residual column for the year 2020 and 2021
+summary_2020_2021_2019 <- filtered_df %>%
+  #filter(Year %in% c(2020, 2021)) %>%
+  group_by(Year) %>%
+  summarise(
+    mean_residual = mean(residual, na.rm = TRUE),
+    sd_residual = sd(residual, na.rm = TRUE)
+  )
+
+# Print the summary
+print(summary_2020_2021_2019)
+
+```
+
+
+```{r}
+library(dplyr)
+
+# Assuming df and filtered_df are your data frames
+
+# Filter df to include only the years 2020 and 2021
+#df_filteredyears <- residuals_df %>% filter(Year %in% c(2020, 2021,2019))
+
+# Extract rows in df_filtered_years that are not in filtered_df
+df2 <- anti_join(residuals_df, filtered_df, by = c("Week", "Year", "Temperature", "Windspeed", "TemperatureGradient", "residual"))
+
+# Print the resulting data frame
+print(df2)
+
+```
+
+
+
+```{r}
+# Calculate mean and standard deviation for the residual column for the year 2020 and 2021
+summarydf2_2020_2021_2019 <- df2 %>%
+  #filter(Year %in% c(2020, 2021)) %>%
+  group_by(Year) %>%
+  summarise(
+    mean_residual = mean(residual),
+    sd_residual = sd(residual)
+  )
+
+# Print the summary
+print(summarydf2_2020_2021_2019)
+
+```

@@ -1,0 +1,136 @@
+---
+title: "Davidson"
+author: "Stephenson"
+date: "2024-01-28"
+output: html_document
+---
+
+#T test for Residuals
+
+
+```{r plot_code, echo=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(readr)
+library(openxlsx)
+library(ggplot2)
+library(rmarkdown)
+library(rlang)
+library(patchwork)
+```
+
+
+#Import data
+
+```{r}
+df_long<- read_xlsx("AverageweeklyResidualsource.xlsx", sheet = "Parks")
+```
+
+
+
+```{r}
+# Fit multiple linear regression model
+model <- lm(NoxAverage ~ Temperature + Windspeed + TemperatureGradient, data = df_long)
+
+
+```
+
+
+```{r}
+# Calculate residuals 
+df_long$residual <- residuals(model)
+
+# Create a new data frame with necessary columns including residuals
+residuals_df <- df_long[, c("Week", "Year", "Temperature", "Windspeed","TemperatureGradient", "residual")]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Standard Deviation and Filtering part
+
+
+
+#lockdownperiod
+```{r}
+# Filter the data for  certain Weeks for the years 2020 and 2021, and Week 12 for 2021
+restricted <- residuals_df %>%
+  #filter(((Week == 19 & Year ==2020)|Week == 12 |Week == 13 | Week == 14| Week==15 | Week==16| Week==17| Week==18) & (Year == 2020 | Year == 2021 | Year == 2019))
+  filter((Week == 12 |Week == 13 | Week == 14| Week==15 | Week==16| Week==17| Week==18) & (Year == 2020 | Year == 2021))
+
+```
+
+
+
+#Excludelockdownperiod
+```{r}
+
+restricted <- residuals_df %>%
+  filter(!(Week >= 12 & Week <= 18 & (Year == 2020 | Year == 2021)) & Year != 2019)
+
+```
+
+
+
+
+
+```{r}
+Nonresrticted2019 <- residuals_df %>%
+  filter(Year == 2019) %>%
+  select( Week, Year2019= Year, Non_Restemp2019 =Temperature, Non_ResWspeed2019 =Windspeed, Non_ResTgradient2019= TemperatureGradient, Non_ResResdiual2019= residual)
+
+```
+
+
+
+```{r}
+# Full join using dplyr
+result <- full_join(Nonresrticted2019, restricted, by = "Week")
+
+```
+
+
+
+
+```{r}
+# Compute t-test
+res <- t.test(result$Non_ResResdiual2019, result$residual)
+
+res
+```
+
+```{r}
+# Compute t-test
+resWS <- t.test(result$NonWspeed2019, result$Windspeed)
+
+resWS
+```
+
+
+
+
+
+```{r}
+# Compute t-test
+resTG <- t.test(result$NonTgradient2019, result$TemperatureGradient)
+
+resTG
+```
+
+
+
+
+
+

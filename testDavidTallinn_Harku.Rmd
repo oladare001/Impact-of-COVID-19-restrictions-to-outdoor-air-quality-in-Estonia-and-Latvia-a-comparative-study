@@ -1,0 +1,140 @@
+---
+title: "Untitled"
+author: "DavidSon"
+date: "2024-01-28"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+
+```
+
+
+#Import data
+
+```{r}
+AM<- read_excel("Tallinn_Harku_2019_2021.xlsx", sheet = "Sheet1")
+```
+
+
+
+
+```{r}
+AM <- separate(AM, Datetime, into = c("Date", "Time"), sep = " ")
+```
+
+
+
+
+```{r}
+# Convert 'Date' column to Date type
+AM$Date <- as.Date(AM$Date , format = "%Y-%m-%d")
+```
+
+#Firsttwins
+```{r}
+# Add a Week column starting from January 1st of each year
+dftest <- AM %>% mutate(
+  Year = lubridate::year(Date),
+  StartOfYear = as.Date(paste(Year, "-01-01", sep = ""), format = "%Y-%m-%d"),
+  Week = ceiling(as.numeric(Date - StartOfYear + 1) / 7)
+)%>% 
+select(-StartOfYear)
+```
+
+
+
+
+#Secondtwins
+```{r}
+# Add a Week and Year column
+#df <- AM %>% mutate(
+  #Week = lubridate::isoweek(Date),
+  #Year = lubridate::year(Date))
+```
+
+
+
+```{r}
+# Calculate weekly payments
+weekly_payments_Kengarags <- dftest %>%
+  group_by(Year, Week) %>%
+  summarize(Sum_Temperature = sum(Temperature, na.rm = TRUE), Sum_Windspeed = sum(Windspeed, na.rm = TRUE), Sum_Atmosphericpressure = sum(Atmosphericpressure, na.rm = TRUE))
+```
+
+
+
+
+```{r}
+# Merge the weekly payments back to the original dataframe
+result_df22 <- merge(dftest, weekly_payments_Kengarags, by = c("Year", "Week"), all.x = TRUE)
+
+```
+
+ 
+
+
+# Count all values (including NA) in the 'Ķengarags' column by Weekly ID
+
+```{r}
+count_by_id <- result_df22 %>%
+  group_by(Week, Year) %>%
+  summarise(Total_count_perweek = n())
+```
+
+
+
+
+#Count all values (excluding NA) in the 'Ķengarags' Weekly ID
+
+```{r}
+# Calculate weekly total data value
+weekly_totals_is_NotNA <- result_df22 %>%
+  group_by(Year, Week) %>%
+  summarize(Totalscount_NotNAWindspeed = sum(!is.na(Windspeed)), Totalscount_NotNATemperature = sum(!is.na(Temperature)), Totalscount_NotNAAtmosphericpressure = sum(!is.na(Atmosphericpressure)))
+
+```
+
+
+
+#SPECIALZONE(WeeklyformatArena:  SECONDSHEETDATA)
+```{r}
+# Merge the weekly payments back to the original dataframe
+Secondsheet <- merge(merge(weekly_payments_Kengarags, count_by_id, by = c("Year", "Week"), all = TRUE), weekly_totals_is_NotNA, by = c("Year", "Week"), all.x = TRUE)
+```
+
+
+
+```{r}
+TESTBB <- Secondsheet %>% 
+  mutate(Averageweekly_Temp = (Sum_Temperature/Total_count_perweek), Averageweekly_windspeed = (Sum_Windspeed/Total_count_perweek), Averageweekly_Atmosphericpressure = (Sum_Atmosphericpressure/Total_count_perweek))
+```
+
+
+
+
+
+#EXPORTINGSHEETZONE
+
+
+```{r}
+# Install and load the openxlsx package
+#install.packages("openxlsx")
+library(openxlsx)
+
+# Specify the Excel file path
+excel_file <- "C:/Users/Stephen/Desktop/Davidsonproject/AveragesonTallinn_Harku.xlsx"
+
+# Write the data frame to Excel
+write.xlsx(TESTBB, excel_file)
+
+```
+
+
+
+
+

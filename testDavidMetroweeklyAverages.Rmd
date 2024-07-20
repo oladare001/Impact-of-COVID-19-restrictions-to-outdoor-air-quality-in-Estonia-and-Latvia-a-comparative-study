@@ -1,0 +1,186 @@
+---
+title: "Davidson"
+author: "Stephenson"
+date: "2024-01-28"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(readr)
+library(openxlsx)
+```
+
+
+#Import data
+
+```{r}
+AM<- read_xlsx("MeteoRigaUniversity_Cleaned2.xlsx")
+```
+
+```
+
+```{r}
+# Convert 'Date' column to Date type
+AM$Date <- as.Date(AM$Date, format = "%d.%m.%Y")
+```
+
+
+#Firsttwins
+```{r}
+# Add a Week column starting from January 1st of each year
+dftest <- AM %>% mutate(
+  Year = lubridate::year(Date),
+  StartOfYear = as.Date(paste(Year, "-01-01", sep = ""), format = "%Y-%m-%d"),
+  Week = ceiling(as.numeric(Date - StartOfYear + 1) / 7)
+)%>% 
+select(-StartOfYear)
+```
+
+
+
+
+```{r}
+# Calculate weekly payments
+# Calculate weekly Sums
+weekly_Sum <- dftest %>%
+  group_by(Year, Week) %>%
+  summarize( Temperaturesum = sum(Temperature,  na.rm = TRUE), Windspeedsum = sum(Windspeed,  na.rm = TRUE),AtmosphericPressuresum = sum(AtmosphericPressure,  na.rm = TRUE),TemperatureGradientsum = sum(TemperatureGradient,  na.rm = TRUE))
+```
+
+
+
+
+```{r}
+# Merge the weekly payments back to the original dataframe
+#result_df22 <- merge(dftest, weekly_Sum, by = c("Year", "Week"), all.x = TRUE)
+```
+
+ 
+
+
+# Count all values (including NA) in the 'Ķengarags' column by Weekly ID
+
+```{r}
+count_by_id <- result_df22 %>%
+  group_by(Week, Year) %>%
+  summarise(Total_Values_Weekly = n())
+```
+
+
+
+
+
+
+```{r}
+# #Count all values (excluding NA) in theTemeprature' Weekly ID
+Temperature_NotNA<- result_df22 %>%
+  group_by( Week, Year) %>%
+  summarize(Temperature_NotNA = sum(!is.na(Temperature)))
+
+```
+
+
+
+```{r}
+# #Count all values (excluding NA) in Windspeed Weekly ID
+Windspeed_NotNA<- result_df22 %>%
+  group_by( Week, Year) %>%
+  summarize(Windspeed_NotNA = sum(!is.na(Windspeed)))
+
+```
+
+
+
+
+
+
+```{r}
+# #Count all values (excluding NA) in theTemeprature' Weekly ID
+AtmosphericPressure_NotNA<- result_df22 %>%
+  group_by( Week, Year) %>%
+  summarize(AtmosphericPressure_NotNA = sum(!is.na(AtmosphericPressure)))
+
+```
+
+
+
+```{r}
+# #Count all values (excluding NA) in Windspeed Weekly ID
+TemperatureGradient_NotNA<- result_df22 %>%
+  group_by( Week, Year) %>%
+  summarize(TemperatureGradient_NotNA = sum(!is.na(TemperatureGradient)))
+
+```
+
+
+
+
+
+
+
+
+
+#SPECIALZONE(WeeklyformatArena:  SECONDSHEETDATA)
+
+
+
+
+
+
+```{r}
+# Create a list of your data frames
+data_frames <- list(Windspeed_NotNA, Temperature_NotNA, TemperatureGradient_NotNA, AtmosphericPressure_NotNA, weekly_Sum,count_by_id)
+
+# Define the columns by which you want to merge
+merge_cols <- c("Week", "Year")
+
+# Merge the data frames using Reduce function
+merged_df <- Reduce(function(x, y) merge(x, y, by = merge_cols, all = TRUE), data_frames)
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+TESTBB <- merged_df %>% 
+  mutate(
+    Averageweekly_Temperature = Temperaturesum/Temperature_NotNA, Averageweekly_Windspeed = Windspeedsum/Windspeed_NotNA, Averageweekly_TemperatureGradientsum = TemperatureGradientsum/TemperatureGradient_NotNA, Averageweekly_AtmosphericPressuresum = AtmosphericPressuresum/AtmosphericPressure_NotNA)
+    
+    
+
+```
+
+
+
+
+
+#EXPORTINGSHEETZONE
+
+
+```{r}
+# Install and load the openxlsx package
+#install.packages("openxlsx")
+library(openxlsx)
+
+# Specify the Excel file path
+excel_file <- "C:/Users/Stephen/Desktop/Davidsonproject/okay/MetroRegaAverageweekly_detailed.xlsx"
+
+# Write the data frame to Excel
+write.xlsx(TESTBB, excel_file)
+
+```
+
+
+
+
+
